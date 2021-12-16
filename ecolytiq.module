@@ -42,10 +42,11 @@ function ecolytiq_menu() {
 function get_request_data(string $request_type) {
   $api_url = variable_get('ecolytiq_api_url');
 
-  if ($request_type === 'transaction' ) {
+  if ($request_type === 'transaction') {
     return get_transaction($api_url);
   }
-  elseif ($request_type === 'transaction_range' ) {
+
+  if ($request_type === 'transaction_range') {
     return get_transaction_range($api_url);
   }
 }
@@ -168,6 +169,20 @@ function get_basic_auth_token() {
   $auth_client_id = variable_get('ecolytiq_auth_client_id');
   $auth_client_secret = variable_get('ecolytiq_auth_client_secret');
 
+  if (empty($auth_token_url) || empty($auth_client_id) || !empty($auth_client_secret)) {
+    drupal_set_message(
+      t('Please fill in the data on the !settings_page for correct work of this module.',
+        array(
+          '!settings_page' => l(
+            t('settings page'),
+            '/admin/config/ecolytiq-api',
+            array('query' => array('destination' => current_path()))
+          ),
+        )
+      ), 'warning'
+    );
+    return FALSE;
+  }
   $response = drupal_http_request($auth_token_url, array(
     'method' => 'POST',
     'headers' => array(
@@ -181,8 +196,8 @@ function get_basic_auth_token() {
   ));
 
   if ($response->code === '200') {
-    $data1 = json_decode($response->data, TRUE, 512, JSON_THROW_ON_ERROR);
-    return $data1['access_token'];
+    $data = json_decode($response->data, TRUE, 512, JSON_THROW_ON_ERROR);
+    return $data['access_token'];
   }
   return FALSE;
 }

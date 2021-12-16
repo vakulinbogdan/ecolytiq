@@ -26,7 +26,6 @@ function ecolytiq_form_test($form, &$form_state) {
       'transaction_range' => 'Transaction Range',
     ),
   );
-
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),
