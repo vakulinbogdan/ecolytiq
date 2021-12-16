@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function ecolytiq_uninstall() {
+  variable_del('ecolytiq_auth_client_id');
+  variable_del('ecolytiq_auth_client_secret');
+  variable_del('ecolytiq_api_url');
+  variable_del('ecolytiq_auth_token_url');
+}

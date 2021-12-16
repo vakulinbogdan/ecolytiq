@@ -1,0 +1,188 @@
+<?php
+
+/**
+ * @file
+ * This is the file description for Ecolytiq module.
+ *
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function ecolytiq_menu() {
+  $items['admin/config/ecolytiq-api'] = array(
+    'title' => 'Config Ecolytiq api',
+    'description' => 'Config Ecolytiq api.',
+    'access arguments' => array('administer site configuration'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ecolytiq_settings'),
+    'file' => 'ecolytiq.admin.inc',
+  );
+
+  $items['ecolytiq-test'] = array(
+    'title' => 'Ecolytiq Test Form',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ecolytiq_form_test'),
+    'access callback' => TRUE,
+    'description' => 'A set of ten tutorials',
+    'file' => 'ecolytiq_form_test.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * @param string $request_type
+ *   Type of request.
+ *
+ * @return false|void Request data
+ * @throws \JsonException
+ */
+function get_request_data(string $request_type) {
+  $api_url = variable_get('ecolytiq_api_url');
+
+  if ($request_type === 'transaction' ) {
+    return get_transaction($api_url);
+  }
+  elseif ($request_type === 'transaction_range' ) {
+    return get_transaction_range($api_url);
+  }
+}
+
+/**
+ * @param string $url
+ *   Api url.
+ * @param string $lang
+ *   Request lang parameter.
+ *
+ * @return false|mixed Response data.
+ * @throws \JsonException
+ */
+function get_transaction(string $url, string $lang = 'DE') {
+  $access_token = get_basic_auth_token();
+  $api_url = $url . '/txp/transaction?modelRegionCode=' . $lang;
+
+  if (!$access_token) {
+    return FALSE;
+  }
+
+  $data_array = array(
+    'transaction_id' => rand(),
+    'profile_id' => rand(),
+    'currency' => "EUR",
+    'amount' => "-32.56",
+    'datatime' => date('c'),
+    'mcc' => "3386",
+    'custom_language_code' => $lang,
+    'merchant' => "A Merchant",
+    'description' => "A Description");
+  $data = json_encode($data_array, JSON_THROW_ON_ERROR);
+  $options = array(
+    'method' => 'POST',
+    'data' => $data,
+    'headers' => array(
+      'Authorization' => 'Bearer ' . $access_token,
+      'Content-Type' => 'application/json'
+    )
+  );
+  $response = drupal_http_request($api_url, $options);
+  if ($response->code === '200') {
+    return $response->data;
+  }
+  return FALSE;
+}
+
+/**
+ * @param string $url
+ *   Api url.
+ * @param string $lang
+ *   Request lang parameter.
+ *
+ * @return false|mixed Response data.
+ * @throws \JsonException
+ */
+function get_transaction_range(string $url, string $lang = 'DE') {
+  $access_token = get_basic_auth_token();
+  $api_url = $url . '/txp/transaction/range?modelRegionCode=' . $lang;
+
+  if (!$access_token) {
+    return FALSE;
+  }
+
+  $data_array = array (
+    'txItems' => array (
+      0 => array (
+        'transaction_id' => rand(),
+        'profile_id' => rand(),
+        'currency' => 'EUR',
+        'amount' => '-32.56',
+        'datatime' => date('c'),
+        'mcc' => '3386',
+        'custom_language_code' => $lang,
+        'merchant' => 'A Merchant',
+        'description' => 'A Description',
+      ),
+      1 => array (
+        'transaction_id' => rand(),
+        'profile_id' => rand(),
+        'currency' => 'EUR',
+        'amount' => '-14.72',
+        'datatime' => date('c'),
+        'mcc' => '3386',
+        'custom_language_code' => $lang,
+        'merchant' => 'A Merchant 2',
+        'description' => 'A Description 2',
+      ),
+    ),
+    'reportCodes' => array (),
+    'contentCodes' => array (),
+  );
+  $data = json_encode($data_array, JSON_THROW_ON_ERROR);
+  $options = array(
+    'method' => 'POST',
+    'data' => $data,
+    'headers' => array(
+      'Authorization' => 'Bearer ' . $access_token,
+      'Content-Type' => 'application/json'
+    )
+  );
+  $response = drupal_http_request($api_url, $options);
+  if ($response->code === '200') {
+    return $response->data;
+  }
+  return FALSE;
+}
+
+/**
+ *
+ * Get Auth token from api.
+ *
+ * @return false|mixed The access token.
+ *   The access token from api.
+ *
+ * @throws \JsonException
+ */
+function get_basic_auth_token() {
+  $auth_token_url = variable_get('ecolytiq_auth_token_url');
+  $auth_client_id = variable_get('ecolytiq_auth_client_id');
+  $auth_client_secret = variable_get('ecolytiq_auth_client_secret');
+
+  $response = drupal_http_request($auth_token_url, array(
+    'method' => 'POST',
+    'headers' => array(
+      'Authorization' => 'Basic ' . base64_encode($auth_client_id . ':' . $auth_client_secret),
+      'Content-Type' => 'application/x-www-form-urlencoded',
+    ),
+    'data' => drupal_http_build_query(array(
+      'scope' => 'all',
+      'grant_type' => 'client_credentials',
+    )),
+  ));
+
+  if ($response->code === '200') {
+    $data1 = json_decode($response->data, TRUE, 512, JSON_THROW_ON_ERROR);
+    return $data1['access_token'];
+  }
+  return FALSE;
+}

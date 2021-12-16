@@ -1,0 +1,4 @@
+name = "Ecolytiq module"
+description = "Ecolytiq test module"
+core = 7.x
+package = Custom
